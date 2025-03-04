@@ -2,3 +2,4 @@ api.yaml
 .env
 node_modules
 dist
+.env.test

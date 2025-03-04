@@ -11,7 +11,7 @@ const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
 
 const twilioClient = twilio(accountSid, authToken);
 
-const redisClient = createClient({
+export const redisClient = createClient({
     url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
 });
 

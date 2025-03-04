@@ -1,8 +1,11 @@
 import dotenv from 'dotenv';
+dotenv.config({ path: '.env.test' });
+
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
+import { redisClient } from '../controllers/users';
 
-dotenv.config({ path: '.env.test' });
+
 
 let mongoServer: MongoMemoryServer;
 
@@ -15,6 +18,7 @@ beforeAll(async () => {
 afterAll(async () => {
     await mongoose.disconnect();
     await mongoServer.stop();
+    await redisClient.quit();
 });
 
 afterEach(async () => {

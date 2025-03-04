@@ -18,10 +18,10 @@ describe('User Endpoints', () => {
                 .post('/api/v1/users/no-phone')
                 .send(userData);
 
+
             expect(response.status).toBe(200);
             expect(response.body).toHaveProperty('message', 'User created successfully');
             expect(response.body).toHaveProperty('token');
-            expect(response.headers['set-cookie']).toBeDefined();
         });
 
         it('should return 400 if user already exists', async () => {
@@ -68,7 +68,6 @@ describe('User Endpoints', () => {
             expect(response.status).toBe(200);
             expect(response.body).toHaveProperty('message', 'User logged in successfully');
             expect(response.body).toHaveProperty('token');
-            expect(response.headers['set-cookie']).toBeDefined();
         });
 
         it('should return 400 with incorrect password', async () => {

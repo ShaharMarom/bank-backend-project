@@ -31,8 +31,8 @@ describe('Transaction Endpoints', () => {
         };
 
         
-        senderToken = jwt.sign({ userId: senderEmail }, process.env.JWT_SECRET!);
-        recipientToken = jwt.sign({ userId: recipientEmail }, process.env.JWT_SECRET!);
+        senderToken = jwt.sign({ userId: senderEmail }, process.env.JWT_SECRET!, { expiresIn: '2h' });
+        recipientToken = jwt.sign({ userId: recipientEmail }, process.env.JWT_SECRET!, { expiresIn: '2h' });
     });
 
     describe('GET /api/v1/transactions', () => {
