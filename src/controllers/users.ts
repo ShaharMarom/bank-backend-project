@@ -5,6 +5,8 @@ import { createClient } from 'redis';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
+const User = require('../models/user');
+
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
@@ -58,14 +60,14 @@ export const registerUserNoPhone: RequestHandler = async (req, res, next): Promi
             return;
         }
         
-        if (usersData[email]) { 
+        if (await User.findOne({ email })) { 
             res.status(400).json({ message: 'User already exists' });
             return;
         }
         
-        usersData[email] = { email, password: await bcrypt.hash(password, SALT_ROUNDS), balance: generateRandomBalance(), phone: '', transactions: [] };
-        
-        const token = generateToken(email);
+        const user = await User.create({ email, password: await bcrypt.hash(password, SALT_ROUNDS), balance: generateRandomBalance() });
+
+        const token = generateToken(user._id);
         
         res.status(200).json({ 
             message: 'User created successfully',
@@ -85,7 +87,7 @@ export const registerUser: RequestHandler = async (req, res, next): Promise<void
             res.status(400).json({ message: 'Missing input' });
             return;
         }
-        if (usersData[email]) {
+        if (await User.findOne({ email })) {
             res.status(400).json({ message: 'User already exists' });
             return;
         }
@@ -117,12 +119,17 @@ export const verifyRegistration: RequestHandler = async (req, res, next): Promis
         const verification = await verifyPhone(phone, code);
 
         if (verification.status === 'approved') {
-            const user = JSON.parse(userData);
-            usersData[user.email] = { email: user.email, password: user.password, balance: generateRandomBalance(), phone: user.phone, transactions: [] };
+            const userParsedData = JSON.parse(userData);
+
+            const user = await User.create({ email: userParsedData.email, 
+                password: userParsedData.password, 
+                balance: generateRandomBalance(), 
+                phone: userParsedData.phone
+            });
 
             redisClient.del(phone);
             
-            const token = generateToken(user.email);
+            const token = generateToken(user._id);
         
             res.status(200).json({ 
                 message: 'User created successfully',
@@ -144,7 +151,7 @@ export const loginUser: RequestHandler = async (req, res, next): Promise<void> =
             return;
         }   
 
-        const user = usersData[email];
+        const user = await User.findOne({ email });
         if (!user) {
             res.status(400).json({ message: 'Invalid input' });
             return;
@@ -156,8 +163,9 @@ export const loginUser: RequestHandler = async (req, res, next): Promise<void> =
             return;
         }
         
-        const token = generateToken(user.email);
+        const token = generateToken(user._id);
         
+        await User.findByIdAndUpdate(user._id, { lastLogin: Date.now() });
         res.status(200).json({ 
             message: 'User logged in successfully',
             token: token
