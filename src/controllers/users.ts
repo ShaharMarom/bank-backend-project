@@ -1,5 +1,4 @@
 import { RequestHandler } from 'express';
-import { usersData } from '../data';
 import twilio from 'twilio';
 import { createClient } from 'redis';
 import jwt from 'jsonwebtoken';
