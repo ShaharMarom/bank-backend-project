@@ -1,0 +1,80 @@
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo:latest
+    command: ["--replSet", "bank", "--bind_ip_all", "--port", "27017"]
+    ports:
+      - 27017:27017
+    healthcheck:
+      test: |
+        mongosh --eval "
+          if (!rs.isMaster().ismaster) {
+            rs.initiate({
+              _id: 'bank',
+              members: [{ _id: 0, host: 'mongo:27017', priority: 1 }]
+            });
+          }
+        "
+      interval: 5s
+      timeout: 30s
+      start_period: 0s
+      retries: 30
+    volumes:
+      - "mongo_data:/data/db"
+      - "mongo_config:/data/configdb"
+    networks:
+      - app_network
+
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
+    healthcheck:
+      test: redis-cli ping
+      interval: 5s
+      timeout: 30s
+      start_period: 0s
+      retries: 30
+    volumes:
+      - "redis_data:/data"
+    networks:
+      - app_network
+  
+  backend:
+    build:
+      context: .
+      args:
+        - NODE_ENV=production
+        - PORT=3000
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis
+      - MONGODB_URI=mongodb://mongo:27017/bank?replicaSet=bank&directConnection=true
+      - NODE_OPTIONS="--max-old-space-size=512"
+    ports:
+      - "${PORT}:${PORT}"
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_started
+    networks:
+      - app_network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    command: ["npm", "start"]
+
+volumes:
+  mongo_data:
+  mongo_config:
+  redis_data:
+
+networks:
+  app_network:
+    driver: bridge

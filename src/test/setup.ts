@@ -3,7 +3,6 @@ require('dotenv').config({ path: '.env.test' });
 import mongoose from 'mongoose';
 import { redisClient } from '../controllers/users';
 
-
 afterAll(async () => {
     await mongoose.disconnect();
     await redisClient.quit();

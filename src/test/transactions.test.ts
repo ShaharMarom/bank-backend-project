@@ -47,6 +47,7 @@ describe('Transaction Endpoints', () => {
                 .get('/api/v1/transactions')
                 .set('Authorization', `Bearer ${senderToken}`);
 
+
             expect(response.status).toBe(200);
             expect(response.body).toHaveProperty('transactions');
             expect(Array.isArray(response.body.transactions)).toBe(true);
@@ -68,6 +69,7 @@ describe('Transaction Endpoints', () => {
                 amount: 100,
                 type: 'transfer'
             };
+
 
             const response = await request(app)
                 .post('/api/v1/transactions')

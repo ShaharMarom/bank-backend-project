@@ -1,5 +1,5 @@
 import { RequestHandler } from 'express';
-import { usersData } from '../data';
+import mongoose from 'mongoose';
 
 const User = require('../models/user');
 const Transaction = require('../models/transaction');
@@ -17,8 +17,10 @@ export const listTransactions: RequestHandler = async (req, res, next): Promise<
 };
 
 export const createTransaction: RequestHandler = async (req, res, next): Promise<void> => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
-        
         const { recipientEmail, amount } = req.body;
         if (!recipientEmail || !amount) {
             res.status(400).json({ message: 'Missing input' });
@@ -30,37 +32,65 @@ export const createTransaction: RequestHandler = async (req, res, next): Promise
             return;
         }
         
-        const sender = await User.findById((req as any).user.userId);
+       
+        const sender = await User.findById((req as any).user.userId).session(session);
         if (!sender) {
+            await session.abortTransaction();
             res.status(401).json({ message: 'Unauthorized' });
             return;
         }
 
         if (amount > sender.balance) {
+            await session.abortTransaction();
             res.status(400).json({ message: 'Insufficient balance' });
             return;
         }
         
-        const recipient = await User.findOne({ email: recipientEmail });
+        const recipient = await User.findOne({ email: recipientEmail }).session(session);
         if (!recipient) {
+            await session.abortTransaction();
             res.status(400).json({ message: 'Recipient not found' });
             return;
         }
 
-        const transaction = await Transaction.create({
+        const transaction = await Transaction.create([{
             sender: sender._id,
             recipient: recipient._id,
             amount: amount,
-            type: 'transfer'
-        });
+            type: 'transfer',
+        }], { session });
+                
+        await User.findByIdAndUpdate(
+            sender._id,
+            { 
+                $inc: { balance: -amount },
+                $push: { transactions: transaction[0]._id }
+            },
+            { session }
+        );
+
+        await User.findByIdAndUpdate(
+            recipient._id,
+            { 
+                $inc: { balance: amount },
+                $push: { transactions: transaction[0]._id }
+            },
+            { session }
+        );
+
         
-        await User.findByIdAndUpdate(sender._id, { balance: sender.balance - amount, transactions: [...sender.transactions, transaction._id] });
-        await User.findByIdAndUpdate(recipient._id, { balance: recipient.balance + amount, transactions: [...recipient.transactions, transaction._id] });
+        await session.commitTransaction();
+        
+        res.status(200).json({ 
+            message: 'Transaction completed successfully', 
+            transactionId: transaction[0]._id 
+        });
 
-
-        res.status(200).json({ message: 'Transaction completed successfully', transactionId: transaction._id });
     } catch (error) {
+        await session.abortTransaction();
         next(error);
+    } finally {
+        session.endSession();
     }
 };
 
