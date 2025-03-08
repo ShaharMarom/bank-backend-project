@@ -1,12 +1,8 @@
 import request from 'supertest';
 import { app } from '../app';
-import { usersData } from '../data';
 
 describe('User Endpoints', () => {
-    beforeEach(() => {
-        Object.keys(usersData).forEach(key => delete usersData[key]);
-    });
-
+    
     describe('POST /api/v1/users/no-phone', () => {
         it('should create a new user without phone verification', async () => {
             const userData = {

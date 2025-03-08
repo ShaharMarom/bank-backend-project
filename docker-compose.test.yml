@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo:latest
+    command: ["--replSet", "bank", "--bind_ip_all", "--port", "27017"]
+    ports:
+      - 27017:27017
+    healthcheck:
+      test: |
+        mongosh --eval "
+          if (!rs.isMaster().ismaster) {
+            rs.initiate({
+              _id: 'bank',
+              members: [{ _id: 0, host: 'localhost:27017', priority: 1 }]
+            });
+          }
+        "
+      interval: 5s
+      timeout: 30s
+      start_period: 0s
+      retries: 30
+    volumes:
+      - "mongo_data:/data/db"
+      - "mongo_config:/data/configdb"
+   
+
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
+    healthcheck:
+      test: redis-cli ping
+      interval: 5s
+      timeout: 30s
+      start_period: 0s
+      retries: 30
+    volumes:
+      - "redis_data:/data"
+
+volumes:
+  mongo_data:
+  mongo_config:
+  redis_data:
+
+

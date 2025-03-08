@@ -2,6 +2,7 @@ import express from 'express';
 import usersRouter from './routes/users';
 import transactionsRouter from './routes/transactions';
 import mongoose from 'mongoose';
+const cors = require('cors');
 
 
 mongoose.connect(process.env.MONGODB_URI as string)
@@ -15,6 +16,7 @@ mongoose.connect(process.env.MONGODB_URI as string)
 const app = express();
 
 app.use(express.json());
+app.use(cors());
 app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/transactions', transactionsRouter);
 
