@@ -34,3 +34,17 @@ export const authenticateUser: RequestHandler = async (req: Request, res: Respon
     }
 };
 
+export const isParamUserId = (req: Request, res: Response, next: NextFunction): void => {
+    const { userId } = req.params;
+    if (!userId) {
+        res.status(400).json({ message: 'Missing input' });
+        return;
+    }
+
+    if (userId !== (req as any).user.id) {
+        res.status(403).json({ message: 'Forbidden' });
+        return;
+    }
+    
+}
+

@@ -174,3 +174,19 @@ export const loginUser: RequestHandler = async (req, res, next): Promise<void> =
         next(error);
     }
 };
+
+export const getBalance: RequestHandler = async (req, res, next): Promise<void> => {
+    try {
+        const { userId } = req.params;
+        
+        const user = await User.findById(userId);   
+        if (!user) {
+            res.status(400).json({ message: 'User not found' });
+            return;
+        }
+
+        res.status(200).json({ balance: user.balance });
+    } catch (error) {
+        next(error);
+    }
+};
