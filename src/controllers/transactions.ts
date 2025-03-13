@@ -7,9 +7,52 @@ const Transaction = require('../models/transaction');
 
 export const listTransactions: RequestHandler = async (req, res, next): Promise<void> => {
     try {
-        const user = await User.findById((req as any).user.userId);
         
-        res.status(200).json({ transactions: user.transactions });
+        const page = parseInt(req.query.page as string) || 1;
+        const pageSize = parseInt(req.query.pageSize as string) || 10;
+        const skip = (page - 1) * pageSize;
+
+        const user = await User.findById((req as any).user.userId).populate({
+            path: 'transactions',
+            options: {
+                sort: { createdAt: -1 },
+                skip: skip,
+                limit: pageSize,
+                populate: [
+                    { path: 'sender', select: 'email' },
+                    { path: 'recipient', select: 'email' },
+                ]
+            }
+        });
+        
+        if (!user) {
+            res.status(400).json({ message: 'User not found', user: (req as any).user.userId });
+            return;
+        }
+
+        const transactions = user.transactions.map((transaction: any) => {
+            
+            if (transaction.sender._id.toString() === (req as any).user.userId) {
+                transaction.amount = -transaction.amount
+                delete transaction.sender;
+            } else {
+                delete transaction.recipient;
+            }
+            return transaction
+        });
+
+
+        res.status(200).json({
+            transactions: transactions,
+            pagination: {
+                currentPage: page,
+                pageSize,
+                totalCount: user.transactions.length,
+                totalPages: Math.ceil(user.transactions.length / pageSize),
+                hasNextPage: page < Math.ceil(user.transactions.length / pageSize),
+                hasPreviousPage: page > 1
+            }
+        });
         
     } catch (error) {
         next(error);

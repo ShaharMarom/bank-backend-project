@@ -177,7 +177,7 @@ export const loginUser: RequestHandler = async (req, res, next): Promise<void> =
 
 export const getBalance: RequestHandler = async (req, res, next): Promise<void> => {
     try {
-        const { userId } = req.params;
+        const userId = (req as any).user.userId;
         
         const user = await User.findById(userId);   
         if (!user) {
